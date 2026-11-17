@@ -96,6 +96,7 @@ def run_schedule(exhibition):
         len(slots),
         exhibition.max_per_visitor,
         settings.SCHEDULER_TIME_LIMIT,
+        settings.SCHEDULER_WORKERS,
     )
     exhibition.meetings.all().delete()
     Meeting.objects.bulk_create(

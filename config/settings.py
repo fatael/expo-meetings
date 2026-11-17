@@ -11,6 +11,16 @@ DEBUG = os.environ.get("DEBUG", "1") == "1"
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "*").split(",")
 CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",") if o]
 
+# Hosting platforms put the site behind an HTTPS proxy and tell us its public name.
+RENDER_HOST = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
+if RENDER_HOST:
+    ALLOWED_HOSTS.append(RENDER_HOST)
+    CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_HOST}")
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SESSION_COOKIE_SECURE = os.environ.get("INSECURE_COOKIES", "0") != "1"
+    CSRF_COOKIE_SECURE = SESSION_COOKIE_SECURE
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -79,3 +89,4 @@ LOGOUT_REDIRECT_URL = "login"
 
 # Upper bound, in seconds, for one optimisation run.
 SCHEDULER_TIME_LIMIT = int(os.environ.get("SCHEDULER_TIME_LIMIT", "30"))
+SCHEDULER_WORKERS = int(os.environ.get("SCHEDULER_WORKERS", "8"))

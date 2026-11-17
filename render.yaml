@@ -1,0 +1,34 @@
+# Render Blueprint: creates the website and its database together.
+# In Render: New > Blueprint > choose this repository.
+databases:
+  - name: expo-meetings-db
+    plan: basic-256mb
+    region: frankfurt
+    databaseName: expo
+    user: expo
+
+services:
+  - type: web
+    name: expo-meetings
+    runtime: docker
+    plan: starter
+    region: frankfurt
+    healthCheckPath: /login/
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: expo-meetings-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "0"
+      - key: WEB_CONCURRENCY
+        value: "1"
+      - key: SCHEDULER_WORKERS
+        value: "2"
+      # Render asks for these two when the Blueprint is created.
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false

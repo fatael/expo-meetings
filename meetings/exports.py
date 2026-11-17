@@ -87,8 +87,10 @@ def excel_workbook(exhibition, lang):
     return buffer.getvalue()
 
 
-def personal_schedules_html(exhibition, kind, lang):
-    """One page per participant of the given kind, as a single HTML document."""
+PDF_CHUNK = 40  # participants rendered at a time, to keep memory use low
+
+
+def _schedule_pages(exhibition, kind):
     meetings_of = defaultdict(list)
     for m in exhibition.meetings.select_related("visitor", "exhibitor", "exhibition"):
         owner, other = (m.visitor, m.exhibitor) if kind == Participant.VISITOR else (m.exhibitor, m.visitor)
@@ -99,15 +101,19 @@ def personal_schedules_html(exhibition, kind, lang):
             "table": m.table,
             "other": other,
         })
-    pages = [
+    return [
         {"participant": p, "meetings": meetings_of.get(p.id, [])}
         for p in exhibition.participants.filter(kind=kind)
     ]
+
+
+def personal_schedules_html(exhibition, kind, lang, pages=None):
+    """One page per participant of the given kind, as a single HTML document."""
     return render_to_string(
         "meetings/personal_schedules.html",
         {
             "exhibition": exhibition,
-            "pages": pages,
+            "pages": _schedule_pages(exhibition, kind) if pages is None else pages,
             "lang": lang,
             "direction": "rtl" if lang == "he" else "ltr",
             "seated": kind == exhibition.seated_kind,
@@ -116,9 +122,18 @@ def personal_schedules_html(exhibition, kind, lang):
 
 
 def personal_schedules_pdf(exhibition, kind, lang):
-    from weasyprint import HTML  # imported here: it is slow to load and only needed for PDFs
+    # Imported here: these are slow to load and only needed for PDFs.
+    from pypdf import PdfWriter
+    from weasyprint import HTML
 
-    return HTML(string=personal_schedules_html(exhibition, kind, lang)).write_pdf()
+    pages = _schedule_pages(exhibition, kind)
+    writer = PdfWriter()
+    for start in range(0, max(len(pages), 1), PDF_CHUNK):
+        html = personal_schedules_html(exhibition, kind, lang, pages[start:start + PDF_CHUNK])
+        writer.append(BytesIO(HTML(string=html).write_pdf()))
+    buffer = BytesIO()
+    writer.write(buffer)
+    return buffer.getvalue()
 
 
 def template_workbook(what, lang):

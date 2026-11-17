@@ -19,7 +19,7 @@ LEVEL_WEIGHT = 1000  # value of moving a visitor up one "round"
 MAX_PRIORITY_BONUS = 50  # must stay well below LEVEL_WEIGHT
 
 
-def select_requests(requests, n_slots, max_per_visitor=None, time_limit=30):
+def select_requests(requests, n_slots, max_per_visitor=None, time_limit=30, workers=8):
     """Choose the requests to grant.
 
     ``requests`` is a list of ``(visitor, exhibitor, rank)`` with rank 1 = first priority.
@@ -61,7 +61,7 @@ def select_requests(requests, n_slots, max_per_visitor=None, time_limit=30):
     model.Maximize(sum(objective))
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = time_limit
-    solver.parameters.num_workers = 8
+    solver.parameters.num_workers = workers
     status = solver.Solve(model)
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
         raise RuntimeError("The scheduling engine could not find a solution in the time allowed.")
@@ -113,9 +113,9 @@ def assign_slots(pairs, n_slots):
     return result
 
 
-def schedule(requests, n_slots, max_per_visitor=None, time_limit=30):
+def schedule(requests, n_slots, max_per_visitor=None, time_limit=30, workers=8):
     """Full run. Returns ``{request_index: slot_index}`` for the granted requests."""
-    granted = sorted(select_requests(requests, n_slots, max_per_visitor, time_limit))
+    granted = sorted(select_requests(requests, n_slots, max_per_visitor, time_limit, workers))
     pairs = [(requests[i][0], requests[i][1]) for i in granted]
     slot_of = assign_slots(pairs, n_slots)
     return {i: slot_of[(requests[i][0], requests[i][1])] for i in granted}
