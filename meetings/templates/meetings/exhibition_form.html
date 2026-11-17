@@ -4,7 +4,7 @@
 <form method="post">{% csrf_token %}
   <div class="card">
     {% for error in form.non_field_errors %}<div class="msg error">{{ error|trans:lang }}</div>{% endfor %}
-    <div class="grid">
+    <div class="grid form">
       <div><label for="{{ form.name.id_for_label }}">{% t "Name" %}</label>{{ form.name }}{{ form.name.errors }}</div>
       <div><label for="{{ form.meeting_minutes.id_for_label }}">{% t "Meeting length (minutes)" %}</label>{{ form.meeting_minutes }}</div>
       <div><label for="{{ form.seating.id_for_label }}">{% t "Seating" %}</label>
