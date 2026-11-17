@@ -1,0 +1,98 @@
+{% extends "meetings/base.html" %}{% load i18n_tags %}
+{% block content %}
+<p><a href="{% url 'exhibition_list' %}">{% t "Exhibitions" %}</a></p>
+<h1>{{ exhibition.name }} {% if exhibition.locked %}<span class="tag">{% t "Locked" %}</span>{% endif %}</h1>
+
+{% if import_errors %}
+<div class="msg error">
+  <b>{% t "The file was not imported. Problems found:" %}</b>
+  <ul class="plain">{% for e in import_errors %}<li>{% if e.row %}{% t "Row" %} {{ e.row }}: {% endif %}{{ e.text }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="row" style="justify-content:space-between">
+    <h2>{% t "Settings" %}</h2>
+    {% if not exhibition.locked %}<a class="button secondary" href="{% url 'exhibition_edit' exhibition.pk %}">{% t "Edit settings" %}</a>{% endif %}
+  </div>
+  <div class="grid">
+    <div class="stat"><span class="muted">{% t "Meeting length (minutes)" %}</span><b>{{ exhibition.meeting_minutes }}</b></div>
+    <div class="stat"><span class="muted">{% t "Meeting slots" %}</span><b>{{ overview.n_slots }}</b></div>
+    <div class="stat"><span class="muted">{% t "Seating" %}</span><div>{{ exhibition.get_seating_display|trans:lang }}</div></div>
+    <div class="stat"><span class="muted">{% t "Maximum meetings per visitor" %}</span><b>{{ exhibition.max_per_visitor|default:"–" }}</b></div>
+  </div>
+  <p>
+  {% for r in exhibition.ranges.all %}<span class="tag">{% filter ltr %}{{ r.date|date:"d/m/Y" }} {{ r.start|time:"H:i" }}–{{ r.end|time:"H:i" }}{% endfilter %}</span> {% empty %}<span class="muted">{% t "No time ranges defined yet." %}</span>{% endfor %}
+  </p>
+  {% for r, leftover in overview.slot_warnings %}
+  <div class="msg warning">{% filter ltr %}{{ r.date|date:"d/m/Y" }} {{ r.start|time:"H:i" }}–{{ r.end|time:"H:i" }}{% endfilter %}: {{ leftover }} {% t "unused minutes at the end of the range" %}</div>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <h2>{% t "Step 1 – Participants file" %}</h2>
+  <div class="grid">
+    <div class="stat"><span class="muted">{% t "Exhibitors" %}</span><b>{{ overview.n_exhibitors }}</b></div>
+    <div class="stat"><span class="muted">{% t "Visitors" %}</span><b>{{ overview.n_visitors }}</b></div>
+  </div>
+  <p class="muted">{% t "Uploading a new participants file replaces the list and deletes the requests and the timetable." %}</p>
+  <form method="post" enctype="multipart/form-data" action="{% url 'upload' exhibition.pk 'participants' %}" class="row">{% csrf_token %}
+    <input type="file" name="file" accept=".xlsx" required>
+    <button {% if exhibition.locked %}disabled{% endif %}>{% t "Upload" %}</button>
+    <a href="{% url 'template_file' exhibition.pk 'participants' %}">{% t "Download template" %}</a>
+  </form>
+</div>
+
+<div class="card">
+  <h2>{% t "Step 2 – Requests file" %}</h2>
+  <div class="grid">
+    <div class="stat"><span class="muted">{% t "Requests" %}</span><b>{{ overview.n_requests }}</b></div>
+  </div>
+  <p class="muted">{% t "Each visitor's requests are ranked by row order: the first row is the first priority." %}
+  {% t "Uploading a new requests file replaces the requests and deletes the timetable." %}</p>
+  <form method="post" enctype="multipart/form-data" action="{% url 'upload' exhibition.pk 'requests' %}" class="row">{% csrf_token %}
+    <input type="file" name="file" accept=".xlsx" required>
+    <button {% if exhibition.locked %}disabled{% endif %}>{% t "Upload" %}</button>
+    <a href="{% url 'template_file' exhibition.pk 'requests' %}">{% t "Download template" %}</a>
+  </form>
+</div>
+
+<div class="card">
+  <h2>{% t "Step 3 – Run the scheduling" %}</h2>
+  <div class="grid">
+    <div class="stat"><span class="muted">{% t "Supply (exhibitors × slots)" %}</span><b>{{ overview.supply }}</b></div>
+    <div class="stat"><span class="muted">{% t "Demand (requests)" %}</span><b>{{ overview.n_requests }}</b></div>
+    <div class="stat"><span class="muted">{% t "Exhibitors with more requests than slots" %}</span><b>{{ overview.oversubscribed }}</b></div>
+    <div class="stat"><span class="muted">{% t "Suggested maximum per visitor" %}</span><b>{{ overview.suggested_cap|default:"–" }}</b></div>
+  </div>
+  <p class="muted">{% t "Running again replaces the whole timetable, including manual changes." %}</p>
+  <form method="post" action="{% url 'run' exhibition.pk %}">{% csrf_token %}
+    <button {% if exhibition.locked %}disabled{% endif %}>{% t "Run scheduling" %}</button>
+  </form>
+</div>
+
+{% if exhibition.last_run %}
+{% with s=exhibition.last_run %}
+<div class="card">
+  <h2>{% t "Step 4 – Review and distribute" %}</h2>
+  <div class="grid">
+    <div class="stat"><span class="muted">{% t "Meetings scheduled" %}</span><b>{{ s.meetings }}</b></div>
+    <div class="stat"><span class="muted">{% t "Requests granted" %}</span><b>{{ s.granted }} ({{ s.granted_pct }}%)</b></div>
+    <div class="stat"><span class="muted">{% t "Requests not granted" %}</span><b>{{ s.unmet }}</b></div>
+    <div class="stat"><span class="muted">{% t "Visitors without any meeting" %}</span><b>{{ s.visitors_without_meeting }}</b></div>
+    <div class="stat"><span class="muted">{% t "Meetings per visitor (min / average / max)" %}</span><b>{{ s.visitors.min }} / {{ s.visitors.avg }} / {{ s.visitors.max }}</b></div>
+    <div class="stat"><span class="muted">{% t "Meetings per exhibitor (min / average / max)" %}</span><b>{{ s.exhibitors.min }} / {{ s.exhibitors.avg }} / {{ s.exhibitors.max }}</b></div>
+  </div>
+  <p class="row">
+    <a class="button" href="{% url 'timetable' exhibition.pk %}">{% t "View and edit timetable" %}</a>
+    <a class="button secondary" href="{% url 'export_excel' exhibition.pk %}">{% t "Excel: full timetable and reports" %}</a>
+    <a class="button secondary" href="{% url 'export_pdf' exhibition.pk 'visitor' %}">{% t "PDF: personal schedules – visitors" %}</a>
+    <a class="button secondary" href="{% url 'export_pdf' exhibition.pk 'exhibitor' %}">{% t "PDF: personal schedules – exhibitors" %}</a>
+  </p>
+  <form method="post" action="{% url 'toggle_lock' exhibition.pk %}">{% csrf_token %}
+    <button class="secondary">{% if exhibition.locked %}{% t "Unlock timetable" %}{% else %}{% t "Lock timetable" %}{% endif %}</button>
+  </form>
+</div>
+{% endwith %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends "meetings/base.html" %}{% load i18n_tags %}
+{% block content %}
+<div class="card" style="max-width:380px;margin:40px auto">
+  <h1>{% t "Log in" %}</h1>
+  {% if form.errors %}<div class="msg error">{% t "Wrong user name or password." %}</div>{% endif %}
+  <form method="post">{% csrf_token %}
+    <p><label for="id_username">{% t "User name" %}</label><input id="id_username" name="username" autofocus required></p>
+    <p><label for="id_password">{% t "Password" %}</label><input id="id_password" name="password" type="password" required></p>
+    <input type="hidden" name="next" value="{{ next }}">
+    <button>{% t "Log in" %}</button>
+  </form>
+</div>
+{% endblock %}

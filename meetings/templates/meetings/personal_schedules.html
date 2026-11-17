@@ -1,0 +1,43 @@
+{% load i18n_tags %}<!doctype html>
+<html lang="{{ lang }}" dir="{{ direction }}">
+<head>
+<meta charset="utf-8">
+<style>
+  @page { size: A4; margin: 18mm 15mm; }
+  body { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 11pt; color: #111; }
+  .page { page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+  h1 { font-size: 16pt; margin: 0 0 2mm; }
+  .sub { color: #555; margin: 0 0 6mm; }
+  .who { font-size: 13pt; font-weight: bold; margin: 0 0 1mm; }
+  .tablebox { display: inline-block; border: 1px solid #111; padding: 1mm 4mm; margin: 2mm 0 5mm; font-weight: bold; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid #999; padding: 2mm 3mm; text-align: start; }
+  th { background: #eee; }
+</style>
+</head>
+<body>
+{% for page in pages %}
+<div class="page">
+  <h1>{{ exhibition.name }}</h1>
+  <p class="sub">{% t "Personal meeting schedule" %}</p>
+  <p class="who">{{ page.participant.name }}{% if page.participant.company %} – {{ page.participant.company }}{% endif %}</p>
+  {% if seated and page.participant.table %}<div class="tablebox">{% t "Table" %} {{ page.participant.table }}</div>{% endif %}
+  {% if page.meetings %}
+  <table>
+    <tr><th>{% t "Date" %}</th><th>{% t "Time" %}</th>{% if not seated %}<th>{% t "Table" %}</th>{% endif %}<th>{% t "Meeting with" %}</th><th>{% t "Company" %}</th></tr>
+    {% for m in page.meetings %}
+    <tr>
+      <td>{{ m.date|date:"d/m/Y" }}</td>
+      <td>{% filter ltr %}{{ m.start|time:"H:i" }}–{{ m.end|time:"H:i" }}{% endfilter %}</td>
+      {% if not seated %}<td>{{ m.table|default:"" }}</td>{% endif %}
+      <td>{{ m.other.name }}</td>
+      <td>{{ m.other.company }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}<p>{% t "No meetings scheduled." %}</p>{% endif %}
+</div>
+{% endfor %}
+</body>
+</html>

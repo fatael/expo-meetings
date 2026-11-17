@@ -1,0 +1,24 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in the .env file}
+      DATABASE_URL: postgres://expo:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in the .env file}@db:5432/expo
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-*}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-}
+    depends_on:
+      - db
+    restart: unless-stopped
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: expo
+      POSTGRES_USER: expo
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    restart: unless-stopped
+volumes:
+  dbdata:

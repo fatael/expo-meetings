@@ -1,0 +1,41 @@
+{% extends "meetings/base.html" %}{% load i18n_tags %}
+{% block content %}
+<h1>{% if exhibition %}{% t "Edit settings" %} – {{ exhibition.name }}{% else %}{% t "New exhibition" %}{% endif %}</h1>
+<form method="post">{% csrf_token %}
+  <div class="card">
+    {% for error in form.non_field_errors %}<div class="msg error">{{ error|trans:lang }}</div>{% endfor %}
+    <div class="grid">
+      <div><label for="{{ form.name.id_for_label }}">{% t "Name" %}</label>{{ form.name }}{{ form.name.errors }}</div>
+      <div><label for="{{ form.meeting_minutes.id_for_label }}">{% t "Meeting length (minutes)" %}</label>{{ form.meeting_minutes }}</div>
+      <div><label for="{{ form.seating.id_for_label }}">{% t "Seating" %}</label>
+        <select name="seating" id="{{ form.seating.id_for_label }}">
+          {% for value, text in form.seating.field.choices %}
+          <option value="{{ value }}"{% if form.seating.value == value %} selected{% endif %}>{{ text|trans:lang }}</option>
+          {% endfor %}
+        </select></div>
+      <div><label for="{{ form.max_per_visitor.id_for_label }}">{% t "Maximum meetings per visitor" %}</label>{{ form.max_per_visitor }}{{ form.max_per_visitor.errors }}
+        <div class="muted">{% t "Leave empty for no limit." %}</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>{% t "Time ranges" %}</h2>
+    <p class="muted">{% t "A break is the gap between two ranges, for example 11:00–13:00 and 13:30–15:00." %}</p>
+    {{ ranges.management_form }}
+    {% for error in ranges.non_form_errors %}<div class="msg error">{{ error|trans:lang }}</div>{% endfor %}
+    <div class="table-wrap"><table>
+      <tr><th>{% t "Date" %}</th><th>{% t "Start" %}</th><th>{% t "End" %}</th><th>{% t "Remove" %}</th></tr>
+      {% for f in ranges %}
+      <tr>
+        <td>{{ f.id }}{{ f.date }}{{ f.date.errors }}</td>
+        <td>{{ f.start }}{{ f.start.errors }}</td>
+        <td>{{ f.end }}{{ f.end.errors }}</td>
+        <td>{% if f.instance.pk %}{{ f.DELETE }}{% endif %}
+          {% for error in f.non_field_errors %}<span class="errorlist">{{ error|trans:lang }}</span>{% endfor %}</td>
+      </tr>
+      {% endfor %}
+    </table></div>
+  </div>
+  <button>{% t "Save" %}</button>
+  <a class="button secondary" href="{% if exhibition %}{% url 'exhibition_detail' exhibition.pk %}{% else %}{% url 'exhibition_list' %}{% endif %}">{% t "Cancel" %}</a>
+</form>
+{% endblock %}

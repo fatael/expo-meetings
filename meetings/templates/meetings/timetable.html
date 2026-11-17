@@ -1,0 +1,50 @@
+{% extends "meetings/base.html" %}{% load i18n_tags %}
+{% block content %}
+<p><a href="{% url 'exhibition_detail' exhibition.pk %}">{{ exhibition.name }}</a></p>
+<h1>{% t "Timetable" %} {% if exhibition.locked %}<span class="tag">{% t "Locked" %}</span>{% endif %}</h1>
+
+<div class="card">
+  <form method="get" class="row">
+    <div><label for="participant">{% t "Participant" %}</label>
+      <select name="participant" id="participant">
+        <option value="">{% t "All participants" %}</option>
+        <optgroup label="{% t 'Exhibitors' %}">{% for p in exhibitors %}<option value="{{ p.pk }}"{% if selected == p.pk|stringformat:"s" %} selected{% endif %}>{{ p.code }} – {{ p.label }}</option>{% endfor %}</optgroup>
+        <optgroup label="{% t 'Visitors' %}">{% for p in visitors %}<option value="{{ p.pk }}"{% if selected == p.pk|stringformat:"s" %} selected{% endif %}>{{ p.code }} – {{ p.label }}</option>{% endfor %}</optgroup>
+      </select></div>
+    <button class="secondary">{% t "Show" %}</button>
+  </form>
+</div>
+
+{% if not exhibition.locked %}
+<div class="card">
+  <h2>{% t "Add a meeting" %}</h2>
+  <form method="post" action="{% url 'meeting_add' exhibition.pk %}" class="row">{% csrf_token %}
+    <div><label>{% t "Visitor" %}</label><select name="visitor" required>{% for p in visitors %}<option value="{{ p.pk }}">{{ p.code }} – {{ p.label }}</option>{% endfor %}</select></div>
+    <div><label>{% t "Exhibitor" %}</label><select name="exhibitor" required>{% for p in exhibitors %}<option value="{{ p.pk }}">{{ p.code }} – {{ p.label }}</option>{% endfor %}</select></div>
+    <div><label>{% t "Time" %}</label><select name="slot" required>{% for s in slots %}<option value="{{ s.key }}">{{ s.label }}</option>{% endfor %}</select></div>
+    <button>{% t "Add" %}</button>
+  </form>
+</div>
+{% endif %}
+
+<div class="card">
+  {% if truncated %}<p class="muted">{% t "Showing the first 500 meetings. Choose a participant to narrow the list." %}</p>{% endif %}
+  {% if meetings %}
+  <div class="table-wrap"><table>
+    <tr><th>{% t "Date" %}</th><th>{% t "Time" %}</th><th>{% t "Table" %}</th><th>{% t "Visitor" %}</th><th>{% t "Exhibitor" %}</th><th></th><th></th></tr>
+    {% for m in meetings %}
+    <tr>
+      <td>{{ m.date|date:"d/m/Y" }}</td><td>{{ m.start|time:"H:i" }}</td><td>{{ m.table|default:"" }}</td>
+      <td>{{ m.visitor.code }} – {{ m.visitor.label }}</td>
+      <td>{{ m.exhibitor.code }} – {{ m.exhibitor.label }}</td>
+      <td>{% if m.manual %}<span class="tag">{% t "Manual" %}</span>{% endif %}</td>
+      <td>{% if not exhibition.locked %}
+        <a href="{% url 'meeting_move' exhibition.pk m.pk %}">{% t "Move" %}</a>
+        <form method="post" action="{% url 'meeting_delete' exhibition.pk m.pk %}" style="display:inline">{% csrf_token %}<button class="link" style="color:var(--bad)">{% t "Delete" %}</button></form>
+      {% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table></div>
+  {% else %}<p class="muted">{% t "No meetings to show." %}</p>{% endif %}
+</div>
+{% endblock %}

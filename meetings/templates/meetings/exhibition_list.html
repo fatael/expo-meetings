@@ -1,0 +1,22 @@
+{% extends "meetings/base.html" %}{% load i18n_tags %}
+{% block content %}
+<div class="row" style="justify-content:space-between">
+  <h1>{% t "Exhibitions" %}</h1>
+  <a class="button" href="{% url 'exhibition_create' %}">{% t "New exhibition" %}</a>
+</div>
+<div class="card">
+  {% if exhibitions %}
+  <div class="table-wrap"><table>
+    <tr><th>{% t "Name" %}</th><th>{% t "Meeting length (minutes)" %}</th><th>{% t "Seating" %}</th><th></th></tr>
+    {% for e in exhibitions %}
+    <tr>
+      <td><a href="{% url 'exhibition_detail' e.pk %}">{{ e.name }}</a></td>
+      <td>{{ e.meeting_minutes }}</td>
+      <td>{{ e.get_seating_display|trans:lang }}</td>
+      <td>{% if e.locked %}<span class="tag">{% t "Locked" %}</span>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table></div>
+  {% else %}<p class="muted">{% t "No exhibitions yet." %}</p>{% endif %}
+</div>
+{% endblock %}

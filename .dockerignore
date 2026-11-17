@@ -1,0 +1,5 @@
+.git
+db.sqlite3
+staticfiles
+__pycache__
+.env
