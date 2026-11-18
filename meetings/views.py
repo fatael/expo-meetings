@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from . import exports, services
@@ -28,7 +29,10 @@ def _download(content, content_type, filename):
 def set_language(request, lang):
     if lang in ("he", "en"):
         request.session["lang"] = lang
-    return redirect(request.META.get("HTTP_REFERER") or "exhibition_list")
+    back = request.META.get("HTTP_REFERER", "")
+    if not url_has_allowed_host_and_scheme(back, allowed_hosts={request.get_host()}):
+        back = "exhibition_list"
+    return redirect(back)
 
 
 @login_required
@@ -50,6 +54,7 @@ def exhibition_edit(request, pk=None):
             ranges = RangeFormSet(request.POST, instance=saved)
             if ranges.is_valid():
                 ranges.save()
+                services.assign_tables(saved)  # the seated side may have changed
                 _say(request, messages.SUCCESS, "Settings saved.")
                 if saved.meetings.exists():
                     _say(request, messages.WARNING,
@@ -87,8 +92,10 @@ def upload(request, pk, what):
             count = import_participants(exhibition, file)
             _say(request, messages.SUCCESS, "participants imported.", prefix=f"{count} ")
         else:
-            count = import_requests(exhibition, file)
+            count, duplicates = import_requests(exhibition, file)
             _say(request, messages.SUCCESS, "requests imported.", prefix=f"{count} ")
+            if duplicates:
+                _say(request, messages.WARNING, "repeated requests were ignored.", prefix=f"{duplicates} ")
     except ImportErrors as problem:
         lang = get_language(request)
         request.session["import_errors"] = [
@@ -203,8 +210,9 @@ def meeting_move(request, pk, meeting_id):
         else:
             return redirect("timetable", pk=pk)
     slots, _warnings = build_slots(exhibition)
+    current = f"{meeting.date.isoformat()} {meeting.start.strftime('%H:%M')}"
     return render(request, "meetings/meeting_move.html",
-                  {"exhibition": exhibition, "meeting": meeting, "slots": slots})
+                  {"exhibition": exhibition, "meeting": meeting, "slots": slots, "current": current})
 
 
 @login_required
@@ -231,3 +239,30 @@ def export_pdf(request, pk, kind):
         raise Http404
     content = exports.personal_schedules_pdf(exhibition, kind, get_language(request))
     return _download(content, "application/pdf", f"schedules-{kind}s-{pk}.pdf")
+
+
+@login_required
+def participants(request, pk):
+    exhibition = get_object_or_404(Exhibition, pk=pk)
+    rows = services.participant_rows(exhibition)
+    return render(request, "meetings/participants.html", {
+        "exhibition": exhibition,
+        "exhibitors": [r for r in rows if r["participant"].kind == Participant.EXHIBITOR],
+        "visitors": [r for r in rows if r["participant"].kind == Participant.VISITOR],
+    })
+
+
+@login_required
+@require_POST
+def exhibition_delete(request, pk):
+    exhibition = get_object_or_404(Exhibition, pk=pk)
+    if exhibition.locked:
+        _say(request, messages.ERROR, "The timetable is locked. Unlock it before deleting the exhibition.")
+        return redirect("exhibition_detail", pk=pk)
+    exhibition.delete()
+    _say(request, messages.SUCCESS, "The exhibition was deleted.")
+    return redirect("exhibition_list")
+
+
+def not_found(request, exception=None):
+    return render(request, "meetings/404.html", status=404)

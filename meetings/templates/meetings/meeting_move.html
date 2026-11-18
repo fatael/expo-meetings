@@ -5,7 +5,7 @@
   <p>{{ meeting.visitor.label }} ↔ {{ meeting.exhibitor.label }}<br>
   <span class="muted">{% filter ltr %}{{ meeting.date|date:"d/m/Y" }} {{ meeting.start|time:"H:i" }}{% endfilter %}</span></p>
   <form method="post" class="row">{% csrf_token %}
-    <div><label>{% t "New time" %}</label><select name="slot">{% for s in slots %}<option value="{{ s.key }}">{{ s.label }}</option>{% endfor %}</select></div>
+    <div><label>{% t "New time" %}</label><select name="slot">{% for s in slots %}<option value="{{ s.key }}"{% if s.key == current %} selected{% endif %}>{{ s.label }}</option>{% endfor %}</select></div>
     <button>{% t "Save" %}</button>
     <a class="button secondary" href="{% url 'timetable' exhibition.pk %}">{% t "Cancel" %}</a>
   </form>

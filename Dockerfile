@@ -13,5 +13,6 @@ RUN DEBUG=0 SECRET_KEY=build python manage.py collectstatic --noinput
 
 ENV DEBUG=0
 EXPOSE 8000
-# The timeout is generous because a PDF with hundreds of pages takes a while to render.
-CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py ensure_admin && gunicorn config.wsgi --bind 0.0.0.0:${PORT:-8000} --workers ${WEB_CONCURRENCY:-2} --timeout 300"]
+# The timeout is generous because a PDF with hundreds of pages takes a while to render;
+# threads keep the site responsive for everyone else in the meantime.
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py ensure_admin && gunicorn config.wsgi --bind 0.0.0.0:${PORT:-8000} --workers ${WEB_CONCURRENCY:-2} --threads 4 --timeout 300"]

@@ -9,6 +9,12 @@ class ExhibitionForm(forms.ModelForm):
         model = Exhibition
         fields = ["name", "meeting_minutes", "seating", "max_per_visitor"]
 
+    def clean_max_per_visitor(self):
+        value = self.cleaned_data.get("max_per_visitor")
+        if value is not None and value < 1:
+            raise forms.ValidationError("The maximum must be at least 1, or empty for no limit.")
+        return value
+
 
 class TimeRangeForm(forms.ModelForm):
     class Meta:

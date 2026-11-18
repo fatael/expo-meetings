@@ -10,6 +10,9 @@ Two steps, both independent of Django so they can be tested and reused on their 
 2. ``assign_slots`` decides WHEN each granted meeting takes place. Because nobody is
    granted more meetings than there are slots, a conflict-free timetable always exists
    (edge colouring of a bipartite graph, König's theorem), and this step finds it exactly.
+
+3. ``compact`` then moves meetings around, without creating clashes, so that people
+   have as few idle slots as possible between their meetings.
 """
 from collections import defaultdict
 
@@ -113,11 +116,70 @@ def assign_slots(pairs, n_slots):
     return result
 
 
-def schedule(requests, n_slots, max_per_visitor=None, time_limit=30, workers=8):
+def compact(slot_of, n_slots, movers="visitors", seed=0):
+    """Rearrange a valid timetable so that people have fewer idle slots between meetings.
+
+    Works by swapping two slots along an alternating chain of meetings, which never
+    creates a clash, and keeping the swap only when it reduces waiting. The side that
+    walks between tables (``movers``) counts four times as much as the seated side.
+    The number of attempts is fixed, so the same input always gives the same timetable.
+    """
+    import random
+
+    used = defaultdict(dict)
+    for (visitor, exhibitor), slot in slot_of.items():
+        used[("v", visitor)][slot] = ("e", exhibitor)
+        used[("e", exhibitor)][slot] = ("v", visitor)
+    weight = {"v": 4, "e": 1} if movers == "visitors" else {"v": 1, "e": 4}
+
+    def idle(node):
+        taken = used[node]
+        return (max(taken) - min(taken) + 1 - len(taken)) * weight[node[0]]
+
+    rng = random.Random(seed)
+    nodes = sorted(used)
+    for _attempt in range(min(300000, 150 * len(slot_of))):
+        node = rng.choice(nodes)
+        a = rng.choice(sorted(used[node]))
+        b = rng.randrange(n_slots)
+        if a == b:
+            continue
+        chain, stack, seen = [], [node], {node}
+        while stack:
+            current = stack.pop()
+            chain.append(current)
+            for slot in (a, b):
+                other = used[current].get(slot)
+                if other is not None and other not in seen:
+                    seen.add(other)
+                    stack.append(other)
+
+        def swap():
+            for member in chain:
+                taken = used[member]
+                at_a, at_b = taken.pop(a, None), taken.pop(b, None)
+                if at_a is not None:
+                    taken[b] = at_a
+                if at_b is not None:
+                    taken[a] = at_b
+
+        before = sum(idle(member) for member in chain)
+        swap()
+        if sum(idle(member) for member in chain) >= before:
+            swap()  # no improvement: undo
+
+    return {
+        (visitor, exhibitor): slot
+        for (side, visitor), taken in used.items() if side == "v"
+        for slot, (_side, exhibitor) in taken.items()
+    }
+
+
+def schedule(requests, n_slots, max_per_visitor=None, time_limit=30, workers=8, movers="visitors"):
     """Full run. Returns ``{request_index: slot_index}`` for the granted requests."""
     granted = sorted(select_requests(requests, n_slots, max_per_visitor, time_limit, workers))
     pairs = [(requests[i][0], requests[i][1]) for i in granted]
-    slot_of = assign_slots(pairs, n_slots)
+    slot_of = compact(assign_slots(pairs, n_slots), n_slots, movers)
     return {i: slot_of[(requests[i][0], requests[i][1])] for i in granted}
 
 

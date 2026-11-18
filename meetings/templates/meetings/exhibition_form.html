@@ -5,7 +5,7 @@
   <div class="card">
     {% for error in form.non_field_errors %}<div class="msg error">{{ error|trans:lang }}</div>{% endfor %}
     <div class="grid form">
-      <div><label for="{{ form.name.id_for_label }}">{% t "Name" %}</label>{{ form.name }}{{ form.name.errors }}</div>
+      <div><label for="{{ form.name.id_for_label }}">{% t "Name" %}</label>{{ form.name }}{% for error in form.name.errors %}<div class="errorlist">{{ error|trans:lang }}</div>{% endfor %}</div>
       <div><label for="{{ form.meeting_minutes.id_for_label }}">{% t "Meeting length (minutes)" %}</label>{{ form.meeting_minutes }}</div>
       <div><label for="{{ form.seating.id_for_label }}">{% t "Seating" %}</label>
         <select name="seating" id="{{ form.seating.id_for_label }}">
@@ -13,7 +13,7 @@
           <option value="{{ value }}"{% if form.seating.value == value %} selected{% endif %}>{{ text|trans:lang }}</option>
           {% endfor %}
         </select></div>
-      <div><label for="{{ form.max_per_visitor.id_for_label }}">{% t "Maximum meetings per visitor" %}</label>{{ form.max_per_visitor }}{{ form.max_per_visitor.errors }}
+      <div><label for="{{ form.max_per_visitor.id_for_label }}">{% t "Maximum meetings per visitor" %}</label>{{ form.max_per_visitor }}{% for error in form.max_per_visitor.errors %}<div class="errorlist">{{ error|trans:lang }}</div>{% endfor %}
         <div class="muted">{% t "Leave empty for no limit." %}</div></div>
     </div>
   </div>
@@ -22,15 +22,15 @@
     <p class="muted">{% t "A break is the gap between two ranges, for example 11:00–13:00 and 13:30–15:00." %}</p>
     {{ ranges.management_form }}
     {% for error in ranges.non_form_errors %}<div class="msg error">{{ error|trans:lang }}</div>{% endfor %}
-    <div class="table-wrap"><table>
+    <div class="table-wrap"><table class="ranges">
       <tr><th>{% t "Date" %}</th><th>{% t "Start" %}</th><th>{% t "End" %}</th><th>{% t "Remove" %}</th></tr>
       {% for f in ranges %}
       <tr>
-        <td>{{ f.id }}{{ f.date }}{{ f.date.errors }}</td>
-        <td>{{ f.start }}{{ f.start.errors }}</td>
-        <td>{{ f.end }}{{ f.end.errors }}</td>
+        <td data-label="{% t 'Date' %}">{{ f.id }}{{ f.date }}{% for error in f.date.errors %}<div class="errorlist">{{ error|trans:lang }}</div>{% endfor %}</td>
+        <td data-label="{% t 'Start' %}">{{ f.start }}{% for error in f.start.errors %}<div class="errorlist">{{ error|trans:lang }}</div>{% endfor %}</td>
+        <td data-label="{% t 'End' %}">{{ f.end }}{% for error in f.end.errors %}<div class="errorlist">{{ error|trans:lang }}</div>{% endfor %}</td>
         <td>{% if f.instance.pk %}{{ f.DELETE }}{% endif %}
-          {% for error in f.non_field_errors %}<span class="errorlist">{{ error|trans:lang }}</span>{% endfor %}</td>
+          {% for error in f.non_field_errors %}<div class="errorlist">{{ error|trans:lang }}</div>{% endfor %}</td>
       </tr>
       {% endfor %}
     </table></div>

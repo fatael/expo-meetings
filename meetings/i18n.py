@@ -107,7 +107,7 @@ HEBREW = {
     "Duplicate ID:": "מזהה כפול:",
     "Type must be exhibitor or visitor:": "הסוג חייב להיות מציג או מבקר:",
     "Missing name.": "חסר שם.",
-    "Table must be a number:": "מספר השולחן חייב להיות מספר:",
+    "Table must be a number:": "מספר השולחן חייב להיות מספר שלם בין 1 ל-100,000:",
     "Visitor is not in the participants list:": "המבקר אינו ברשימת המשתתפים:",
     "Exhibitor is not in the participants list:": "המציג אינו ברשימת המשתתפים:",
     "Duplicate request:": "בקשה כפולה:",
@@ -168,6 +168,43 @@ HEBREW = {
     "No meetings scheduled.": "לא נקבעו פגישות.",
     "visitor": "מבקר",
     "exhibitor": "מציג",
+    # added after the first round of testing
+    "This field is required.": "שדה חובה.",
+    "Enter a valid date.": "יש להזין תאריך תקין.",
+    "Enter a valid time.": "יש להזין שעה תקינה.",
+    "Enter a whole number.": "יש להזין מספר שלם.",
+    "The maximum must be at least 1, or empty for no limit.": "התקרה חייבת להיות 1 לפחות, או ריקה אם אין תקרה.",
+    "Text is too long:": "הטקסט ארוך מדי:",
+    "repeated requests were ignored.": "בקשות חוזרות לא נספרו פעמיים.",
+    "The requests file may have one row per request, or one row per visitor followed by that visitor's exhibitors in order of priority.":
+        "קובץ הבקשות יכול להכיל שורה לכל בקשה, או שורה לכל מבקר ואחריה המציגים שביקש לפי סדר העדיפות.",
+    "This replaces the participants list and deletes the requests and the timetable. Continue?":
+        "הפעולה תחליף את רשימת המשתתפים ותמחק את הבקשות ואת הלוח. להמשיך?",
+    "This replaces the requests and deletes the timetable. Continue?":
+        "הפעולה תחליף את הבקשות ותמחק את הלוח. להמשיך?",
+    "This replaces the whole timetable, including manual changes. Continue?":
+        "הפעולה תחליף את כל הלוח, כולל תיקונים ידניים. להמשיך?",
+    "Delete this meeting?": "למחוק את הפגישה?",
+    "Delete exhibition": "מחיקת תערוכה",
+    "Delete the exhibition with all its participants, requests and meetings? This cannot be undone.":
+        "למחוק את התערוכה עם כל המשתתפים, הבקשות והפגישות? לא ניתן לבטל את הפעולה.",
+    "The exhibition was deleted.": "התערוכה נמחקה.",
+    "The timetable is locked. Unlock it before deleting the exhibition.":
+        "הלוח נעול. בטלו את הנעילה לפני מחיקת התערוכה.",
+    "View participants": "צפייה ברשימת המשתתפים",
+    "Participants": "משתתפים",
+    "No participants loaded yet.": "עדיין לא נטענו משתתפים.",
+    "Minimum": "מינימום",
+    "Average": "ממוצע",
+    "Maximum": "מקסימום",
+    "Meetings per visitor": "פגישות למבקר",
+    "Meetings per exhibitor": "פגישות למציג",
+    "Preparing a PDF for hundreds of participants can take up to a minute. Click once and wait.":
+        "הכנת PDF למאות משתתפים עשויה לארוך עד דקה. לחצו פעם אחת והמתינו.",
+    "Page not found": "העמוד לא נמצא",
+    "The page you asked for does not exist. It may have been deleted.":
+        "העמוד שביקשתם אינו קיים. ייתכן שנמחק.",
+    "Back to the exhibitions list": "חזרה לרשימת התערוכות",
 }
 
 

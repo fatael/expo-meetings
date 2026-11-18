@@ -40,6 +40,16 @@
   .errorlist { color:var(--bad); list-style:none; padding:0; margin:4px 0; font-size:14px; }
   .tag { font-size:12px; border:1px solid var(--line); border-radius:10px; padding:1px 8px; color:var(--muted); }
   ul.plain { margin:0; padding-inline-start:20px; }
+  .stat b.inline { display:inline; font-size:18px; }
+  .errorlist { display:block; }
+  select { max-width:100%; text-overflow:ellipsis; }
+  @media (max-width: 640px) {
+    .row > div, .row select, .row input[type=file] { width:100%; }
+    table.ranges tr:first-child { display:none; }
+    table.ranges tr { display:block; border-bottom:1px solid var(--line); padding:8px 0; }
+    table.ranges td { display:flex; justify-content:space-between; align-items:center; gap:12px; border:none; white-space:normal; }
+    table.ranges td::before { content:attr(data-label); color:var(--muted); font-size:14px; }
+  }
 </style>
 </head>
 <body>

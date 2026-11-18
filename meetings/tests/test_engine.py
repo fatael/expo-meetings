@@ -86,6 +86,24 @@ class SchedulerTests(SimpleTestCase):
         self.assertLessEqual(max(Counter(requests[i][1] for i in plan).values()), 16)
         self.assertGreater(len(plan), 2000)
 
+    def test_compaction_keeps_validity_and_reduces_waiting(self):
+        rng = random.Random(5)
+        pairs = [(v, e) for v in range(40) for e in rng.sample(range(30), 4)]
+        loose = scheduler.assign_slots(pairs, 12)
+
+        def waiting(slot_of):
+            mine = {}
+            for (v, _e), s in slot_of.items():
+                mine.setdefault(v, []).append(s)
+            return sum(max(x) - min(x) + 1 - len(x) for x in mine.values())
+
+        tight = scheduler.compact(loose, 12)
+        self.assertEqual(set(tight), set(loose))
+        self.assertEqual(len({(v, s) for (v, _e), s in tight.items()}), len(tight))
+        self.assertEqual(len({(e, s) for (_v, e), s in tight.items()}), len(tight))
+        self.assertLess(waiting(tight), waiting(loose))
+        self.assertEqual(tight, scheduler.compact(loose, 12))  # same input, same timetable
+
     def test_slot_assignment_on_dense_graph(self):
         pairs = [(v, e) for v in range(12) for e in range(12)]
         random.Random(3).shuffle(pairs)
@@ -110,7 +128,7 @@ class ImportAndRunTests(TestCase):
     def test_import_and_schedule(self):
         self.assertEqual(import_participants(self.exhibition, xlsx(self.participants)), 4)
         requests = [["מזהה מבקר", "מזהה מציג"], ["V1", "E2"], ["V1", "E1"], ["V2", "E2"]]
-        self.assertEqual(import_requests(self.exhibition, xlsx(requests)), 3)
+        self.assertEqual(import_requests(self.exhibition, xlsx(requests)), (3, 0))
         first = self.exhibition.requests.get(visitor__code="V1", exhibitor__code="E2")
         self.assertEqual(first.rank, 1)  # row order is the priority
         stats = services.run_schedule(self.exhibition)
@@ -121,11 +139,40 @@ class ImportAndRunTests(TestCase):
 
     def test_bad_rows_are_reported_and_nothing_is_saved(self):
         import_participants(self.exhibition, xlsx(self.participants))
-        bad = [["visitor_id", "exhibitor_id"], ["V1", "E9"], ["E1", "E2"], ["V1", "E1"], ["V1", "E1"]]
+        bad = [["visitor_id", "exhibitor_id"], ["V1", "E9"], ["E1", "E2"], ["V1", "E1"]]
         with self.assertRaises(ImportErrors) as caught:
             import_requests(self.exhibition, xlsx(bad))
-        self.assertEqual([row for row, _text, _detail in caught.exception.errors], [2, 3, 5])
+        self.assertEqual([row for row, _text, _detail in caught.exception.errors], [2, 3])
         self.assertEqual(self.exhibition.requests.count(), 0)
+
+    def test_untidy_real_world_files_are_accepted(self):
+        participants = [
+            ["רשימת משתתפים – תערוכה 2027"],          # a title row above the header
+            [],
+            ["קוד משתתף", "סוג משתתף", "שם מלא", "שם חברה", "נייד", "הערות"],
+            ["e1", "מציגים", "Dana", "Hotels", 501234567, "vip"],
+            [1002, "Supplier", "Avi", "Tours", "", ""],
+            ["V1", "מבקרת", "Mary", "", "", ""],
+        ]
+        self.assertEqual(import_participants(self.exhibition, xlsx(participants)), 3)
+        # IDs match regardless of case and spaces; a repeated request is kept once.
+        requests = [["מזהה מבקר", "מזהה מציג"], [" v1", "E1 "], ["V1", 1002], ["V1", "e1"]]
+        self.assertEqual(import_requests(self.exhibition, xlsx(requests)), (2, 1))
+
+    def test_wide_requests_file(self):
+        import_participants(self.exhibition, xlsx(self.participants))
+        wide = [["מזהה מבקר", "בקשה 1", "בקשה 2"], ["V1", "E2", "E1"], ["V2", "E1", ""]]
+        self.assertEqual(import_requests(self.exhibition, xlsx(wide)), (3, 0))
+        ranks = dict(self.exhibition.requests.filter(visitor__code="V1").values_list("exhibitor__code", "rank"))
+        self.assertEqual(ranks, {"E2": 1, "E1": 2})
+
+    def test_oversized_values_are_reported_not_crashed(self):
+        for row in (["E1", "מציג", "Dana", "x" * 300], ["E" * 80, "מציג", "Dana", ""]):
+            with self.assertRaises(ImportErrors):
+                import_participants(self.exhibition, xlsx([["מזהה", "סוג", "שם", "חברה"], row]))
+        for table in ("99999999999", "0", "abc"):
+            with self.assertRaises(ImportErrors):
+                import_participants(self.exhibition, xlsx([["מזהה", "סוג", "שם", "שולחן"], ["E1", "מציג", "Dana", table]]))
 
     def test_missing_column(self):
         with self.assertRaises(ImportErrors):
@@ -184,3 +231,19 @@ class PageTests(TestCase):
         self.assertEqual(book.worksheets[0].max_row, 41)
         pdf = self.client.get(reverse("export_pdf", args=[exhibition.pk, "visitor"]))
         self.assertTrue(pdf.content.startswith(b"%PDF"))
+        self.assertContains(self.client.get(reverse("participants", args=[exhibition.pk])), "Vis 3")
+        self.client.post(reverse("exhibition_delete", args=[exhibition.pk]))
+        self.assertFalse(Exhibition.objects.exists())
+
+    def test_zero_cap_is_rejected(self):
+        response = self.client.post(reverse("exhibition_create"), {
+            "name": "Expo", "meeting_minutes": 15, "seating": "exhibitors", "max_per_visitor": "0",
+            "ranges-TOTAL_FORMS": 0, "ranges-INITIAL_FORMS": 0, "ranges-MIN_NUM_FORMS": 0, "ranges-MAX_NUM_FORMS": 1000,
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Exhibition.objects.exists())
+
+    def test_missing_page_and_language_redirect(self):
+        self.assertEqual(self.client.get("/99999/").status_code, 404)
+        response = self.client.get(reverse("set_language", args=["en"]), HTTP_REFERER="https://evil.example/x")
+        self.assertEqual(response["Location"], reverse("exhibition_list"))

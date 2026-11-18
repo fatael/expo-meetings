@@ -5,7 +5,7 @@ from django.conf import settings
 from django.db import transaction
 
 from . import scheduler
-from .models import Meeting, MeetingRequest, Participant
+from .models import Exhibition, Meeting, MeetingRequest, Participant
 from .slots import build_slots
 
 
@@ -97,6 +97,7 @@ def run_schedule(exhibition):
         exhibition.max_per_visitor,
         settings.SCHEDULER_TIME_LIMIT,
         settings.SCHEDULER_WORKERS,
+        "visitors" if exhibition.seating == exhibition.EXHIBITORS_SEATED else "exhibitors",
     )
     exhibition.meetings.all().delete()
     Meeting.objects.bulk_create(
@@ -141,4 +142,19 @@ def unmet_requests(exhibition):
         request
         for request in MeetingRequest.objects.filter(exhibition=exhibition).select_related("visitor", "exhibitor")
         if (request.visitor_id, request.exhibitor_id) not in met
+    ]
+
+
+def participant_rows(exhibition):
+    """Every participant with the number of requests and of meetings they have."""
+    requested, scheduled = Counter(), Counter()
+    for visitor_id, exhibitor_id in exhibition.requests.values_list("visitor_id", "exhibitor_id"):
+        requested[visitor_id] += 1
+        requested[exhibitor_id] += 1
+    for visitor_id, exhibitor_id in exhibition.meetings.values_list("visitor_id", "exhibitor_id"):
+        scheduled[visitor_id] += 1
+        scheduled[exhibitor_id] += 1
+    return [
+        {"participant": p, "requested": requested.get(p.id, 0), "scheduled": scheduled.get(p.id, 0)}
+        for p in exhibition.participants.all()
     ]

@@ -1,0 +1,10 @@
+{% load i18n_tags %}<div class="table-wrap"><table>
+  <tr><th>{% t "ID" %}</th><th>{% t "Name" %}</th><th>{% t "Company" %}</th><th>{% t "Email" %}</th><th>{% t "Phone" %}</th><th>{% t "Table" %}</th><th>{% t "Requested" %}</th><th>{% t "Scheduled" %}</th></tr>
+  {% for r in rows %}
+  <tr>
+    <td>{{ r.participant.code }}</td><td>{{ r.participant.name }}</td><td>{{ r.participant.company }}</td>
+    <td>{{ r.participant.email }}</td><td>{{ r.participant.phone }}</td><td>{{ r.participant.table|default:"" }}</td>
+    <td>{{ r.requested }}</td><td>{{ r.scheduled }}</td>
+  </tr>
+  {% endfor %}
+</table></div>

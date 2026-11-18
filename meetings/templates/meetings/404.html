@@ -1,0 +1,8 @@
+{% extends "meetings/base.html" %}{% load i18n_tags %}
+{% block content %}
+<div class="card">
+  <h1>{% t "Page not found" %}</h1>
+  <p>{% t "The page you asked for does not exist. It may have been deleted." %}</p>
+  <p><a href="{% url 'exhibition_list' %}">{% t "Back to the exhibitions list" %}</a></p>
+</div>
+{% endblock %}

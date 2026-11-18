@@ -40,7 +40,7 @@
       <td>{% if m.manual %}<span class="tag">{% t "Manual" %}</span>{% endif %}</td>
       <td>{% if not exhibition.locked %}
         <a href="{% url 'meeting_move' exhibition.pk m.pk %}">{% t "Move" %}</a>
-        <form method="post" action="{% url 'meeting_delete' exhibition.pk m.pk %}" style="display:inline">{% csrf_token %}<button class="link" style="color:var(--bad)">{% t "Delete" %}</button></form>
+        <form method="post" action="{% url 'meeting_delete' exhibition.pk m.pk %}" style="display:inline" onsubmit="return confirm('{% t "Delete this meeting?" %}')">{% csrf_token %}<button class="link" style="color:var(--bad)">{% t "Delete" %}</button></form>
       {% endif %}</td>
     </tr>
     {% endfor %}
